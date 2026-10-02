@@ -41,6 +41,15 @@ def gradient_descent(Xb, y, lr, epochs):
     return w, history
 
 
+def convergence_info(history, window=100, tol=1e-6):
+    """Relative change in the loss over the last `window` epochs; a tiny value means descent has settled."""
+    if len(history) <= window:
+        return {"window": window, "relative_change": None, "converged": False}
+    old, new = history[-window - 1], history[-1]
+    rel = abs(old - new) / max(old, 1e-12)
+    return {"window": window, "tolerance": tol, "relative_change": float(rel), "converged": bool(rel < tol)}
+
+
 def predict_yield(model, X):
     """model: dict with mean, std, weights (bias first), y_mean, y_std."""
     Z = (np.asarray(X, dtype=float) - np.array(model["mean"])) / np.array(model["std"])
@@ -72,7 +81,7 @@ def run_regression(df, out_dir, models_dir, seed=SEED):
         "random_seed": seed, "learning_rate": LEARNING_RATE, "epochs": EPOCHS, "test_size": TEST_SIZE,
         "n_train": int(len(tr)), "n_test": int(len(te)),
         "loss_definition": "MSE on standardised target (train set)",
-        "initial_loss": hist[0], "final_loss": hist[-1],
+        "initial_loss": hist[0], "final_loss": hist[-1], "convergence": convergence_info(hist),
         "train_metrics": metrics(y[tr], ptr), "test_metrics": metrics(y[te], pte),
         "baseline_test_rmse_predict_train_mean": float(np.sqrt(np.mean((y[te] - y[tr].mean()) ** 2))),
         "closed_form_test_rmse_for_comparison": metrics(y[te], m_ne)["rmse"],
